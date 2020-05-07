@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>3D (lab4) // Meshkov Roman // 171-331</title>
+    <title>3D // Meshkov Roman // 171-331</title>
     <style>
         body {
             margin: 0;
@@ -16,13 +16,18 @@
 <body>
 <script type="module">
     import * as THREE from './js/three.module.js';
+    import {OrbitControls} from "./js/orbitControls.js";
 
     let isReducing = false;
 
     function animate() {
         requestAnimationFrame(animate);
 
-        cube.rotation.x += 0.005;
+        if (cube.position.x === 0) {
+            cube.matrix.setPosition(2, 2, 0)
+        } else cube.matrix.setPosition(0, 0, 0)
+        cube.matrixAutoUpdate = false
+
         cube.rotation.y += 0.01;
 
         ring.rotation.z += 0.02;
@@ -48,11 +53,22 @@
         renderer.render(scene, camera);
     }
 
+    function render() {
+        lightHelper.update();
+
+        // shadowCameraHelper.update();
+        renderer.render(scene, camera);
+    }
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
+
+    const listener = new THREE.AudioListener();
+    camera.add(listener);
 
     const boxGeometry = new THREE.BoxGeometry();
     const cylinderGeometry = new THREE.CylinderGeometry();
@@ -63,11 +79,45 @@
     scene.add(cube);
     scene.add(cylinder);
     scene.add(ring);
-
-
     cylinder.position.x = -3
     ring.position.x = 3;
     camera.position.z = 5;
+
+    let controls = new OrbitControls(camera, renderer.domElement);
+    controls.addEventListener('change', render);
+    controls.minDistance = 10;
+    controls.maxDistance = 100;
+    controls.enablePan = false;
+
+    let ambient = new THREE.AmbientLight(0xffffff, 0.1);
+
+    let spotLight = new THREE.SpotLight(0xffffff, 1);
+    spotLight.position.set(15, 40, 35);
+    spotLight.angle = Math.PI / 4;
+    spotLight.penumbra = 0.05;
+    spotLight.decay = 2;
+    spotLight.distance = 200;
+
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.width = 1024;
+    spotLight.shadow.mapSize.height = 1024;
+    spotLight.shadow.camera.near = 10;
+    spotLight.shadow.camera.far = 200;
+    scene.add(spotLight);
+
+    let lightHelper = new THREE.SpotLightHelper(spotLight);
+    scene.add(lightHelper);
+    scene.add(ambient);
+
+
+    let groundMaterial = new THREE.MeshPhongMaterial({color: '#255205', dithering: true});
+    let groundGeometry = new THREE.PlaneBufferGeometry(1000, 1000);
+
+    let mesh = new THREE.Mesh(groundGeometry, groundMaterial);
+    mesh.position.set(0, 0, 0);
+    mesh.rotation.x = -Math.PI * 0.5;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
 
     animate();
 </script>
