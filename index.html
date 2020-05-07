@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>3D (lab4) // Meshkov Roman // 171-331</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<script type="module">
+    import * as THREE from './js/three.module.js';
+
+    let isReducing = false;
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        cube.rotation.x += 0.005;
+        cube.rotation.y += 0.01;
+
+        ring.rotation.z += 0.02;
+
+        if (ring.scale.y > 2 && isReducing === false) {
+            isReducing = true;
+        } else if (ring.scale.y < .5 && isReducing === true) {
+            isReducing = false;
+        }
+
+        if (isReducing) {
+            ring.scale.y -= 0.01;
+            ring.scale.x -= 0.01;
+        } else {
+            ring.scale.y += 0.02;
+            ring.scale.x += 0.02;
+        }
+
+        cylinder.rotation.x += 0.02;
+        cylinder.rotation.z += 0.01;
+        cylinder.rotation.y -= 0.01;
+
+        renderer.render(scene, camera);
+    }
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const boxGeometry = new THREE.BoxGeometry();
+    const cylinderGeometry = new THREE.CylinderGeometry();
+    const ringGeometry = new THREE.RingGeometry();
+    const cube = new THREE.Mesh(boxGeometry, new THREE.MeshBasicMaterial({color: '#0015f1'}));
+    const cylinder = new THREE.Mesh(cylinderGeometry, new THREE.MeshBasicMaterial());
+    const ring = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({color: '#ee2222'}));
+    scene.add(cube);
+    scene.add(cylinder);
+    scene.add(ring);
+
+
+    cylinder.position.x = -3
+    ring.position.x = 3;
+    camera.position.z = 5;
+
+    animate();
+</script>
+</body>
+</html>
