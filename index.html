@@ -19,6 +19,77 @@
     import {OrbitControls} from "./js/orbitControls.js";
 
     let isReducing = false;
+    let listener, sound, audioLoader;
+    const musicBtn = document.getElementById('musicBtn');
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, .1, 1000);
+    const renderer = new THREE.WebGLRenderer({alpha: true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+
+    const boxGeometry = new THREE.BoxGeometry();
+    const cylinderGeometry = new THREE.CylinderGeometry();
+    const ringGeometry = new THREE.RingGeometry();
+    const cube = new THREE.Mesh(boxGeometry, new THREE.MeshBasicMaterial({color: '#0015f1'}));
+    const cylinder = new THREE.Mesh(cylinderGeometry, new THREE.MeshBasicMaterial());
+    const ring = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({color: '#ee2222'}));
+    cylinder.position.x = -3
+    ring.position.x = 3;
+    scene.add(cube);
+    scene.add(cylinder);
+    scene.add(ring);
+    camera.position.z = 100;
+    camera.position.y = 10;
+
+    // Orbit controls
+    let controls = new OrbitControls(camera, renderer.domElement);
+    controls.addEventListener('change', render);
+    controls.minDistance = 10;
+    controls.maxDistance = 15000;
+    controls.enablePan = false;
+
+    // Light
+    let spotLight = new THREE.SpotLight(0xffffff, 1, 200, Math.PI / 4, .5, 2);
+    spotLight.position.set(15, 40, 35);
+
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.width = 1024;
+    spotLight.shadow.mapSize.height = 1024;
+    spotLight.shadow.camera.near = 10;
+    spotLight.shadow.camera.far = 200;
+    scene.add(spotLight);
+
+    // Ground
+    let groundMaterial = new THREE.MeshPhongMaterial({color: '#255205', dithering: true});
+    let groundGeometry = new THREE.PlaneBufferGeometry(100, 100);
+    let mesh = new THREE.Mesh(groundGeometry, groundMaterial);
+    mesh.position.set(0, 0, 0);
+    mesh.rotation.x = -Math.PI * 0.5;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+
+    // Skybox
+    const cubeTextureLoader = new THREE.CubeTextureLoader();
+    const skyboxTexture = cubeTextureLoader.load((new Date().getHours() > 6 && new Date().getHours() < 21) ? [
+        'img/bluecloud_ft.jpg',
+        'img/bluecloud_bk.jpg',
+        'img/bluecloud_up.jpg',
+        'img/bluecloud_dn.jpg',
+        'img/bluecloud_rt.jpg',
+        'img/bluecloud_lf.jpg',
+    ] : [
+        'img/space_ft.png',
+        'img/space_bk.png',
+        'img/space_up.png',
+        'img/space_dn.png',
+        'img/space_rt.png',
+        'img/space_lf.png',
+    ]);
+    scene.background = skyboxTexture;
+
 
     function animate() {
         requestAnimationFrame(animate);
@@ -54,72 +125,45 @@
     }
 
     function render() {
-        lightHelper.update();
-
-        // shadowCameraHelper.update();
         renderer.render(scene, camera);
     }
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    document.body.appendChild(renderer.domElement);
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
 
-    const listener = new THREE.AudioListener();
-    camera.add(listener);
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
 
-    const boxGeometry = new THREE.BoxGeometry();
-    const cylinderGeometry = new THREE.CylinderGeometry();
-    const ringGeometry = new THREE.RingGeometry();
-    const cube = new THREE.Mesh(boxGeometry, new THREE.MeshBasicMaterial({color: '#0015f1'}));
-    const cylinder = new THREE.Mesh(cylinderGeometry, new THREE.MeshBasicMaterial());
-    const ring = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({color: '#ee2222'}));
-    scene.add(cube);
-    scene.add(cylinder);
-    scene.add(ring);
-    cylinder.position.x = -3
-    ring.position.x = 3;
-    camera.position.z = 5;
+    function switchAudio() {
+        if (!listener && !sound) {
+            listener = new THREE.AudioListener();
+            camera.add(listener);
 
-    let controls = new OrbitControls(camera, renderer.domElement);
-    controls.addEventListener('change', render);
-    controls.minDistance = 10;
-    controls.maxDistance = 100;
-    controls.enablePan = false;
+            sound = new THREE.Audio(listener);
 
-    let ambient = new THREE.AmbientLight(0xffffff, 0.1);
+            audioLoader = new THREE.AudioLoader();
+            audioLoader.load('sounds/de_inferno.mp3', buffer => {
+                sound.setBuffer(buffer);
+                sound.setLoop(true);
+                sound.setVolume(0.4);
+                sound.play();
+            });
+            musicBtn.innerText = 'Stop music';
+        } else if (sound.isPlaying) {
+            sound.pause();
+            musicBtn.innerText = 'Resume music';
+        } else {
+            sound.play();
+            musicBtn.innerText = 'Stop music';
+        }
+    }
 
-    let spotLight = new THREE.SpotLight(0xffffff, 1);
-    spotLight.position.set(15, 40, 35);
-    spotLight.angle = Math.PI / 4;
-    spotLight.penumbra = 0.05;
-    spotLight.decay = 2;
-    spotLight.distance = 200;
-
-    spotLight.castShadow = true;
-    spotLight.shadow.mapSize.width = 1024;
-    spotLight.shadow.mapSize.height = 1024;
-    spotLight.shadow.camera.near = 10;
-    spotLight.shadow.camera.far = 200;
-    scene.add(spotLight);
-
-    let lightHelper = new THREE.SpotLightHelper(spotLight);
-    scene.add(lightHelper);
-    scene.add(ambient);
-
-
-    let groundMaterial = new THREE.MeshPhongMaterial({color: '#255205', dithering: true});
-    let groundGeometry = new THREE.PlaneBufferGeometry(1000, 1000);
-
-    let mesh = new THREE.Mesh(groundGeometry, groundMaterial);
-    mesh.position.set(0, 0, 0);
-    mesh.rotation.x = -Math.PI * 0.5;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-
+    window.addEventListener('resize', onWindowResize, false);
+    musicBtn.addEventListener('click', switchAudio);
     animate();
 </script>
+<button id="musicBtn" type="button" style="position: absolute; top: 1px; left: 1px">Play music</button>
+
 </body>
 </html>
