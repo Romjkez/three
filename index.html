@@ -20,6 +20,8 @@
     import {StereoEffect} from "./js/StereoEffect.js";
 
     let isReducing = false;
+    let torusScalingAnim = true;
+    let timer = 7;
     let listener, sound, audioLoader, effect;
     const musicBtn = document.getElementById('musicBtn');
     const stereoBtn = document.getElementById('stereoBtn');
@@ -34,17 +36,18 @@
 
     const boxGeometry = new THREE.BoxGeometry();
     const cylinderGeometry = new THREE.CylinderGeometry();
-    const ringGeometry = new THREE.RingGeometry();
+    const ringGeometry = new THREE.TorusGeometry(3);
     const cube = new THREE.Mesh(boxGeometry, new THREE.MeshBasicMaterial({color: '#0015f1'}));
+    cube.matrixAutoUpdate = false
     const cylinder = new THREE.Mesh(cylinderGeometry, new THREE.MeshBasicMaterial());
-    const ring = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({color: '#ee2222'}));
+    const torus = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({color: '#ee2222'}));
     cylinder.position.x = -5
     cylinder.position.y = 1.2
-    ring.position.x = 5;
-    ring.position.y = 1.2;
+    torus.position.x = 5;
+    torus.position.y = 1.2;
     scene.add(cube);
     scene.add(cylinder);
-    scene.add(ring);
+    scene.add(torus);
     camera.position.z = 10;
     camera.position.y = 10;
 
@@ -58,7 +61,6 @@
     // Light
     let spotLight = new THREE.SpotLight(0xffffff, 1, 200, Math.PI / 4, .5, 2);
     spotLight.position.set(15, 40, 35);
-
     spotLight.castShadow = true;
     spotLight.shadow.mapSize.width = 1024;
     spotLight.shadow.mapSize.height = 1024;
@@ -94,6 +96,9 @@
     ]);
     scene.background = skyboxTexture;
 
+    // Change torus behavior after timeout
+    setTimeout(() => torusScalingAnim = false, 7000)
+
     function animate() {
         requestAnimationFrame(animate);
         render();
@@ -116,25 +121,39 @@
                     0, 0, 0, 1))
             }
         }
-        cube.matrixAutoUpdate = false
 
         cube.rotation.y += 0.01;
 
-        ring.rotation.z += 0.02;
+        torus.rotation.z += 0.02;
 
-        if (ring.scale.y > 2 && isReducing === false) {
-            isReducing = true;
-        } else if (ring.scale.y < .5 && isReducing === true) {
-            isReducing = false;
-        }
-
-        if (isReducing) {
-            ring.scale.y -= 0.01;
-            ring.scale.x -= 0.01;
+        if (torusScalingAnim) {
+            if (torus.scale.y > 2 && !isReducing) {
+                isReducing = true;
+            } else if (torus.scale.y < .5 && isReducing) {
+                isReducing = false;
+            }
+            if (isReducing) {
+                torus.scale.y -= 0.01;
+                torus.scale.x -= 0.01;
+            } else {
+                torus.scale.y += 0.02;
+                torus.scale.x += 0.02;
+            }
         } else {
-            ring.scale.y += 0.02;
-            ring.scale.x += 0.02;
+            if (torus.position.y > 15 && !isReducing) {
+                isReducing = true;
+            } else if (torus.position.y < 0 && isReducing) {
+                isReducing = false;
+            }
+            if (isReducing) {
+                torus.position.y -= 1;
+                torus.position.z -= .1;
+            } else {
+                torus.position.y += 1;
+                torus.position.z += .1;
+            }
         }
+
 
         cylinder.rotation.x += 0.02;
         cylinder.rotation.z += 0.01;
@@ -185,10 +204,23 @@
         }
     }
 
+    function setTimer() {
+        const interval = setInterval(() => {
+            if (timer > 0) {
+                timer--;
+                document.getElementById('timer').innerText = `Таймер: ${timer} сек`
+            } else {
+                document.getElementById('timer').style.display = 'none';
+                clearInterval(interval)
+            }
+        }, 1000)
+    }
+
     window.addEventListener('resize', onWindowResize, false);
     musicBtn.addEventListener('click', switchAudio);
     stereoBtn.addEventListener('click', toggleStereo)
 
+    setTimer()
     toggleStereo();
     animate();
 </script>
@@ -196,5 +228,7 @@
     <button id="musicBtn" type="button">Play music</button>
     <button id="stereoBtn" type="button">Toggle stereo camera</button>
 </div>
+<span id="timer"
+      style="position: absolute; top: 1px; padding: .1rem; right: 1px; font-size: 1.5rem; background: #fff; color: #333">Таймер: 7 сек</span>
 </body>
 </html>
