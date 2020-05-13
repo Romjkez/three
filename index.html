@@ -22,12 +22,12 @@
     let isReducing = false;
     let torusScalingAnim = true;
     let timer = 7;
-    let listener, sound, audioLoader, effect;
+    let listener, sound, audioLoader, effect, font;
     const musicBtn = document.getElementById('musicBtn');
     const stereoBtn = document.getElementById('stereoBtn');
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, .1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
     const renderer = new THREE.WebGLRenderer({alpha: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -41,15 +41,17 @@
     cube.matrixAutoUpdate = false
     const cylinder = new THREE.Mesh(cylinderGeometry, new THREE.MeshBasicMaterial());
     const torus = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({color: '#ee2222'}));
-    cylinder.position.x = -5
-    cylinder.position.y = 1.2
-    torus.position.x = 5;
+    cylinder.position.x = -120
+    cylinder.position.y = 20;
+    cylinder.scale.copy({x: 30, y: 30, z: 30})
+    torus.position.z = 25;
     torus.position.y = 1.2;
+    torus.scale.copy({x: 30, y: 30, z: 30})
     scene.add(cube);
     scene.add(cylinder);
     scene.add(torus);
-    camera.position.z = 10;
-    camera.position.y = 10;
+    camera.position.z = 100;
+    camera.position.y = 125;
 
     // Orbit controls
     let controls = new OrbitControls(camera, renderer.domElement);
@@ -59,8 +61,11 @@
     controls.enablePan = false;
 
     // Light
-    let spotLight = new THREE.SpotLight(0xffffff, 1, 200, Math.PI / 4, .5, 2);
-    spotLight.position.set(15, 40, 35);
+    let ambientLight = new THREE.AmbientLight('#fff', 0.5)
+    scene.add(ambientLight)
+
+    let spotLight = new THREE.SpotLight('#fff', 1, 1000, Math.PI / 4, .5, 2);
+    spotLight.position.set(15, 150, 35);
     spotLight.castShadow = true;
     spotLight.shadow.mapSize.width = 1024;
     spotLight.shadow.mapSize.height = 1024;
@@ -70,7 +75,7 @@
 
     // Ground
     let groundMaterial = new THREE.MeshPhongMaterial({color: '#255205', dithering: true});
-    let groundGeometry = new THREE.PlaneBufferGeometry(100, 100);
+    let groundGeometry = new THREE.PlaneBufferGeometry(1000, 1000);
     let mesh = new THREE.Mesh(groundGeometry, groundMaterial);
     mesh.position.set(0, 0, 0);
     mesh.rotation.x = -Math.PI * 0.5;
@@ -96,6 +101,50 @@
     ]);
     scene.background = skyboxTexture;
 
+    // Text
+    const materials = [
+        new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true}), // front
+        new THREE.MeshPhongMaterial({color: 0xffffff}) // side
+    ];
+    const fontLoader = new THREE.FontLoader();
+    fontLoader.load('./fonts/helvetiker.typeface.json', f => {
+        const matrixTextGeo = new THREE.TextGeometry('3D', {
+            font: f,
+            size: 120,
+            height: 1,
+            curveSegments: 30,
+            bevelEnabled: true,
+            bevelThickness: 1,
+            bevelSize: 8,
+            bevelOffset: 0,
+            bevelSegments: 5,
+        })
+        const matrixTextMesh = new THREE.Mesh(matrixTextGeo, materials)
+        matrixTextMesh.position.z = -100;
+        matrixTextMesh.position.x = -60;
+        scene.add(matrixTextMesh)
+
+    });
+
+    // ShapeGeometry
+    const baseX = 0, baseY = 0;
+    const heartShape = new THREE.Shape();
+    heartShape.moveTo(baseX + 5, baseY + 5);
+    heartShape.bezierCurveTo(baseX + 5, baseY + 5, baseX + 4, baseY, baseX, baseY);
+    heartShape.bezierCurveTo(baseX - 6, baseY, baseX - 6, baseY + 7, baseX - 6, baseY + 7);
+    heartShape.bezierCurveTo(baseX - 6, baseY + 11, baseX - 3, baseY + 15.4, baseX + 5, baseY + 19);
+    heartShape.bezierCurveTo(baseX + 12, baseY + 15.4, baseX + 16, baseY + 11, baseX + 16, baseY + 7);
+    heartShape.bezierCurveTo(baseX + 16, baseY + 7, baseX + 16, baseY, baseX + 10, baseY);
+    heartShape.bezierCurveTo(baseX + 7, baseY, baseX + 5, baseY + 5, baseX + 5, baseY + 5);
+
+    const shapeGeometry = new THREE.ShapeGeometry(heartShape);
+    const material = new THREE.MeshBasicMaterial({color: '#234'});
+    const shapeMesh = new THREE.Mesh(shapeGeometry, material);
+    shapeMesh.rotation.z = 60
+    shapeMesh.position.copy({x: 10, y: 20, z: -30})
+    scene.add(shapeMesh);
+
+
     // Change torus behavior after timeout
     setTimeout(() => torusScalingAnim = false, 7000)
 
@@ -107,17 +156,17 @@
     function render() {
         // Matrix transformation of cube
         if (Date.now() % 5 === 0) {
-            if (cube.matrix.elements[0] < 10) {
+            if (cube.matrix.elements[0] < 50) {
                 cube.matrix.copy(new THREE.Matrix4().set(
                     (cube.matrix.elements[0] + 1), 0, 0, 0,
-                    0, 1, 0, 3,
-                    0, 0, 1, 3,
+                    0, 30, 0, 8,
+                    0, 0, 20, 3,
                     0, 0, 0, 1))
             } else {
                 cube.matrix.copy(new THREE.Matrix4().set(
                     1, 0, 0, 0,
-                    0, 1, 0, 3,
-                    0, 0, 1, 3,
+                    0, 30, 0, 8,
+                    0, 0, 20, 3,
                     0, 0, 0, 1))
             }
         }
@@ -127,7 +176,7 @@
         torus.rotation.z += 0.02;
 
         if (torusScalingAnim) {
-            if (torus.scale.y > 2 && !isReducing) {
+            if (torus.scale.y > 10 && !isReducing) {
                 isReducing = true;
             } else if (torus.scale.y < .5 && isReducing) {
                 isReducing = false;
@@ -140,7 +189,7 @@
                 torus.scale.x += 0.02;
             }
         } else {
-            if (torus.position.y > 15 && !isReducing) {
+            if (torus.position.y > 100 && !isReducing) {
                 isReducing = true;
             } else if (torus.position.y < 0 && isReducing) {
                 isReducing = false;
