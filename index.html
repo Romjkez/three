@@ -18,6 +18,8 @@
     import * as THREE from './js/three.module.js';
     import {OrbitControls} from "./js/orbitControls.js";
     import {StereoEffect} from "./js/StereoEffect.js";
+    import {GLTFLoader} from "./js/GLTFLoader.js";
+    import {DragControls} from "./js/DragControls.js";
 
     let isReducing = false;
     let torusScalingAnim = true;
@@ -27,8 +29,8 @@
     const stereoBtn = document.getElementById('stereoBtn');
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
-    const renderer = new THREE.WebGLRenderer({alpha: true});
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1300);
+    const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
@@ -57,7 +59,7 @@
     let controls = new OrbitControls(camera, renderer.domElement);
     controls.addEventListener('change', render);
     controls.minDistance = 10;
-    controls.maxDistance = 15000;
+    controls.maxDistance = 700;
     controls.enablePan = false;
 
     // Light
@@ -144,9 +146,31 @@
     shapeMesh.position.copy({x: 10, y: 20, z: -30})
     scene.add(shapeMesh);
 
+    // Draggable GLTF model
+    const gltfLoader = new GLTFLoader();
+    let gltfCar;
+    gltfLoader.load(
+        './models/car/model.gltf',
+        gltf => {
+            gltfCar = gltf.scene;
+            gltfCar.scale.copy({x: 200, y: 200, z: 200})
+            gltfCar.position.copy({x: 130, y: 55, z: 20})
+            gltfCar.rotation.y = 180
+            gltfCar.rotation.x = 20
+            scene.add(gltfCar);
+            const dragControls = new DragControls([gltfCar], camera, renderer.domElement)
+            dragControls.addEventListener('drag', render)
+            dragControls.addEventListener('dragstart', pauseOrbit)
+        },
+        xhr => console.log(`GLTF: ${(xhr.loaded / xhr.total * 100)}% loaded`),
+        error => {
+            throw new Error(error);
+        }
+    )
 
     // Change torus behavior after timeout
     setTimeout(() => torusScalingAnim = false, 7000)
+
 
     function animate() {
         requestAnimationFrame(animate);
@@ -263,6 +287,11 @@
                 clearInterval(interval)
             }
         }, 1000)
+    }
+
+    function pauseOrbit() {
+        controls.saveState();
+        controls.reset();
     }
 
     window.addEventListener('resize', onWindowResize, false);
