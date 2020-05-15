@@ -24,7 +24,7 @@
     let isReducing = false;
     let torusScalingAnim = true;
     let timer = 7;
-    let listener, sound, audioLoader, effect, font;
+    let listener, sound, audioLoader, effect, font, bones, skeletonHelper;
     const musicBtn = document.getElementById('musicBtn');
     const stereoBtn = document.getElementById('stereoBtn');
 
@@ -168,8 +168,11 @@
         }
     )
 
+    // Skeleton
+    initBones();
+
     // Change torus behavior after timeout
-    setTimeout(() => torusScalingAnim = false, 7000)
+    setTimeout(() => torusScalingAnim = false, timer * 1000)
 
 
     function animate() {
@@ -292,6 +295,104 @@
     function pauseOrbit() {
         controls.saveState();
         controls.reset();
+    }
+
+    function createBonesGeometry(sizing) {
+        const geometry = new THREE.CylinderBufferGeometry(8, 5, sizing.height, 16, sizing.segmentCount * 3, true);
+        const position = geometry.attributes.position;
+        const vertex = new THREE.Vector3();
+
+        const skinIndices = [];
+        const skinWeights = [];
+
+        for (let i = 0; i < position.count; i++) {
+
+            vertex.fromBufferAttribute(position, i);
+
+            const y = (vertex.y + sizing.halfHeight);
+
+            const skinIndex = Math.floor(y / sizing.segmentHeight);
+            const skinWeight = (y % sizing.segmentHeight) / sizing.segmentHeight;
+
+            skinIndices.push(skinIndex, skinIndex + 1, 0, 0);
+            skinWeights.push(1 - skinWeight, skinWeight, 0, 0);
+
+        }
+
+        geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndices, 4));
+        geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4));
+
+        return geometry;
+
+    }
+
+    function createBones(sizing) {
+        bones = [];
+
+        let prevBone = new THREE.Bone();
+        bones.push(prevBone);
+        prevBone.position.y = -sizing.halfHeight;
+
+        for (let i = 0; i < sizing.segmentCount; i++) {
+
+            const bone = new THREE.Bone();
+            bone.position.y = sizing.segmentHeight;
+            bones.push(bone);
+            prevBone.add(bone);
+            prevBone = bone;
+
+        }
+        return bones;
+    }
+
+    function createBonesMesh(geometry, bones) {
+
+        const material = new THREE.MeshPhongMaterial({
+            skinning: true,
+            color: '#7a1aa1',
+            side: THREE.DoubleSide,
+            flatShading: true
+        });
+
+        const mesh = new THREE.SkinnedMesh(geometry, material);
+        const skeleton = new THREE.Skeleton(bones);
+
+        mesh.add(bones[0]);
+
+        mesh.bind(skeleton);
+
+        skeletonHelper = new THREE.SkeletonHelper(mesh);
+        skeletonHelper.material.linewidth = 2;
+        scene.add(skeletonHelper);
+
+        return mesh;
+
+    }
+
+    function initBones() {
+
+        const segmentHeight = 8;
+        const segmentCount = 4;
+        const height = segmentHeight * segmentCount;
+        const halfHeight = height * 0.5;
+
+        const sizing = {
+            segmentHeight: segmentHeight,
+            segmentCount: segmentCount,
+            height: height,
+            halfHeight: halfHeight
+        };
+        const geometry = createBonesGeometry(sizing);
+        const bones = createBones(sizing);
+        mesh = createBonesMesh(geometry, bones);
+        bones[1].position.x = -10
+        bones[2].position.x = -5
+        bones[3].position.x = -2.5
+
+        mesh.scale.multiplyScalar(1.2);
+        mesh.position.copy({x: 0, y: 19, z: 70})
+        scene.add(mesh);
+
     }
 
     window.addEventListener('resize', onWindowResize, false);
